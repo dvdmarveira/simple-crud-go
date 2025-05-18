@@ -46,12 +46,14 @@ func (taskHandler *TaskHandler) ReadTasks(writer http.ResponseWriter, request *h
 func (taskHandler *TaskHandler) CreateTask(writer http.ResponseWriter, request *http.Request) {
 	var task models.Task
 	err := json.NewDecoder(request.Body).Decode(&task)
+
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	_, err = taskHandler.DB.Exec("INSERT INTO tasks (title, description, status) VALUES ($1, $2, $3)", task.Title, task.Description, task.Status)
+	query := "INSERT INTO tasks (title, description, status) VALUES ($1, $2, $3) RETURNING id"
+	err = taskHandler.DB.QueryRow(query, task.Title, task.Description, task.Status).Scan(&task.ID)
 	if err != nil {
 		http.Error(writer, err.Error(), http.StatusInternalServerError)
 		return
